@@ -1,0 +1,252 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "embdata"
+dynamic = ["version"]
+description = 'Data, types, pipes, manipulation for embodied learning.'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "apache-2.0"
+keywords = []
+authors = [
+  { name = "mbodi ai team", email = "info@mbodi.ai" },
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+dependencies = [
+  'aiocache',
+  'compress_pickle',
+  'datasets',
+  'numpy',
+  'opencv-contrib-python',
+  'methodtools',
+  'pillow',
+  'plotext',
+  'pydantic',
+  'rich',
+  "matplotlib",
+  "gymnasium",
+  "einops",
+  "ruamel.yaml",
+  "torch",
+  "torchvision",
+  "scipy",
+  "requires",
+]
+
+[project.optional-dependencies]
+audio = ["pyaudio"]
+three_d = ["open3d"] 
+stream = ["opencv-contrib-python"]
+plot = ["plotext"]
+mpl = ["matplotlib"]
+all = [
+  "aiocache", "compress_pickle", "ffpyplayer", "datasets",
+  "plotext", "pyaudio", "shapely",
+  "transformers", "rerun-sdk", "matplotlib"
+]
+
+workflow = [
+  "aiocache",
+  "compress_pickle",
+  "gymnasium",
+  "ffpyplayer",
+  "opencv-contrib-python",
+  "datasets",
+  "plotext",
+  "shapely",
+  "torch",
+  "torchvision",
+  "transformers",
+  "einops",
+  "matplotlib",
+  "ruamel.yaml",
+  "scipy",
+  "scikit-learn",
+  "requires", 
+  "open3d",
+  "trimesh",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "info/__about__.py"
+
+[tool.hatch.envs.default]
+path = ".hatch"
+python = "3.11"
+dependencies = ["pytest==8.2.2", "importlib-resources==6.4.0", "pytest-md"]
+
+[tool.hatch.envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+  "pydantic[mypy]"  # if you're using Pydantic plugins with mypy
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive embdata"
+
+[tool.coverage.run]
+source_pkgs = ["embdata", "tests"]
+branch = true
+parallel = true
+omit = ["embdata/__about__.py", "embdata/schema"]
+
+[tool.coverage.paths]
+embdata = ["embdata", "*/embdata"]
+tests = ["tests", "*/embdata/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+follow_imports = "silent"
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+disallow_untyped_defs = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-unsafe-fixes = ["ALL"]
+extend-select = ["ALL"]
+# List of rules: https://docs.astral.sh/ruff/rules
+select = [
+# flake8-builtins
+"A",
+# flake8-commas
+"COM812",
+# flake8-comprehensions
+"C4",
+# pydocstyle
+"D",
+# pycodestyle
+"E",
+# Pyflakes
+"F",
+# pyupgrade
+"UP",
+# flake8-bugbear
+"B",
+# flake8-simplify
+"SIM",
+# flake8-implicit-str-concat
+# "ISC",
+# pep8-naming
+"N",
+# flake8-annotations
+"ANN",
+# flake8-async
+"ASYNC",
+# flake8-bandid selected
+"S",
+# flake8-print
+"T20",
+# flake8-return
+"RET",
+# flake8-simplify
+"SIM",
+# flake8-unused-arguments
+"ARG",
+# flake8-use-pathlib
+"PTH",
+# eradicate
+"ERA",
+# pandas-vet
+"PD",
+# Import sort
+"I",
+# avoid shadowing
+"PLW",
+]
+ignore = [
+"D105", # Missing docstring in magic method
+"PGH004",
+"D100",
+"D101",
+"D104",
+"D106",
+# missing-type-self
+"ANN101",
+# missing-type-cls
+"ANN102",
+# missing-type-kwargs
+"ANN003",
+# utf-8 encoding skip
+"ANN204", # Missing type annotation for function argument `self`
+"UP009",
+# Star-arg unpacking after a keyword argument is strongly discouraged
+"B026",
+# Missing type annotation for function argument `self`
+"ANN001",
+# Dynamically typed expressions (typing.Any) are disallowed in `wrapper`
+"ANN401",
+# We don't need docstrings for every method
+"ANN202",
+"D107",
+"D102",
+"D103",
+# Inline lambdas
+"E731",
+# Sometimes we need List and Tuple
+"UP006",
+"UP035",
+"ANN002",
+"N806",
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"**/{tests,docs}/*" = ["ALL"]
+"**__init__.py" = ["F401"]
+
+
+[tool.pytest.ini_options]
+addopts = "-m 'not network'"
+markers = "network: marks tests that make network calls (deselect with '-m \"not network\"')"
+
+[tool.uv.sources]
+embdata = { workspace = true }
