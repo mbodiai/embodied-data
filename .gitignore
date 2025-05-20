@@ -194,5 +194,5 @@ saved_datasets/
 **/*/__pycache__/**/*
 .mbodi*
 
-embdata/resources/
+# embdata/resources/
 requirements.txt
