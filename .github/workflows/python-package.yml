@@ -31,7 +31,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install hatch
         # Install the workflow-specific dependencies
-        hatch run pip install .[workflow]
+        hatch run pip install -e .[workflow]
 
     # Run tests with pytest
     - name: Test with pytest
