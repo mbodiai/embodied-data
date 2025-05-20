@@ -11,6 +11,9 @@ import open3d as o3d
 import logging
 import importlib.util
 import pytest
+import os
+import matplotlib.pyplot as plt
+import trimesh
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -325,18 +328,20 @@ def test_segment_plane_trimesh_backend(image_path, depth_path):
 
     # Check coefficients
     assert hasattr(plane_result, 'coefficients'), "Plane object missing 'coefficients' attribute."
-    assert isinstance(plane_result.coefficients, Plane), \
-        f"Expected coefficients to be Plane, got {type(plane_result.coefficients)}"
-    logging.info(f"Plane coefficients (a,b,c,d): {plane_result.coefficients.model_dump()}")
+    assert isinstance(plane_result.coefficients, np.ndarray), \
+        f"Expected coefficients to be ndarray, got {type(plane_result.coefficients)}"
+    assert len(plane_result.coefficients) == 4, \
+        f"Expected coefficients to have 4 elements, got {len(plane_result.coefficients)}"
+    logging.info(f"Plane coefficients (a,b,c,d): {plane_result}")
 
-    coeffs = plane_result.coefficients
-    assert isinstance(coeffs.a, float), "Coefficient 'a' is not a float"
-    assert isinstance(coeffs.b, float), "Coefficient 'b' is not a float"
-    assert isinstance(coeffs.c, float), "Coefficient 'c' is not a float"
-    assert isinstance(coeffs.d, float), "Coefficient 'd' is not a float"
+    # Access coefficients directly from the Plane object
+    assert isinstance(plane_result.a, float), "Coefficient 'a' is not a float"
+    assert isinstance(plane_result.b, float), "Coefficient 'b' is not a float"
+    assert isinstance(plane_result.c, float), "Coefficient 'c' is not a float"
+    assert isinstance(plane_result.d, float), "Coefficient 'd' is not a float"
 
     # Check normal vector magnitude (should be close to 1)
-    normal_magnitude = np.sqrt(coeffs.a**2 + coeffs.b**2 + coeffs.c**2)
+    normal_magnitude = np.sqrt(plane_result.a**2 + plane_result.b**2 + plane_result.c**2)
     assert np.isclose(normal_magnitude, 1.0, atol=1e-6), \
         f"Plane normal vector [a, b, c] magnitude is not close to 1 ({normal_magnitude})"
     logging.info(f"Plane normal magnitude: {normal_magnitude}")
