@@ -404,7 +404,12 @@ class Coordinate(Sample, Generic[Unpack[Ts]]):
         unit: LinearUnitType | AngularUnitType | PixelUnitType | TemporalUnitType | None = None,
     ) -> "Self":
         """Create a Coordinate instance with all zeros."""
-        c = cls(*np.zeros(cls.shape))
+        # Since shape is an instance method, we need to get shape from _shape or model_fields
+        shape = getattr(cls, "_shape", None)
+        if not shape or (isinstance(shape, tuple) and any(s is None for s in shape)):
+            shape = (len(cls.model_fields),)
+
+        c = cls(*np.zeros(shape))
         c._info = CoordinateInfo[*Ts](
             reference_frame=reference_frame or "world",
             origin= cast("WorldOrigin[*Ts,]", origin if origin is not None else WorldOrigin[*Ts]()),
@@ -543,16 +548,6 @@ class Coordinate(Sample, Generic[Unpack[Ts]]):
 
         # Fallback (should not happen): convert numerics
         return type(self)(*stored_origin)  # type: ignore[arg-type]
-
-    def set_info(self, key: str, value: Any) -> None:
-        """Set a metadata entry."""
-        if key == "origin":
-            self.set_origin(value)
-        elif key == "reference_frame":
-            self.set_reference_frame(value)
-        else:
-            msg = f"Invalid key: {key}"
-            raise ValueError(msg)
 
     @staticmethod
     def convert_linear_unit(value: float, from_unit: LinearUnitType | str, to_unit: LinearUnitType | str) -> float:
@@ -1207,4 +1202,137 @@ class Corner2D(Coordinate[sz[2], sz[2], Float]):
     top_right: PixelCoords
     bottom_right: PixelCoords
     bottom_left: PixelCoords
+
+def demo() -> None:
+    """Demonstrate the functionality of the coordinate module.
+
+    This function serves as a sanity check for the features documented in coordinate.md.
+    It tests and demonstrates various operations on coordinate objects.
+    """
+    import math
+
+    import numpy as np
+
+    from embdata.utils.safe_print import safe_print
+
+    safe_print("\n=== Coordinate Module Demo ===\n")
+
+    # 1. Basic coordinate type creation
+    safe_print("1. Creating coordinate objects:")
+    point = Point(1.0, 2.0, 3.0)
+    planar_pose = Pose3D(x=1.0, y=2.0, theta=math.pi/2)
+    pose = Pose6D(1.0, 2.0, 3.0, 0.1, 0.2, 0.3)
+    plane = Plane([1.0, 0.0, 0.0, -5.0])  # YZ plane at x=5
+
+    safe_print(f"  Point: {point}")
+    safe_print(f"  Pose3D: {planar_pose}")
+    safe_print(f"  Pose6D: {pose}")
+    safe_print(f"  Plane: {plane}")
+
+    # 2. Metadata and reference frames
+    safe_print("\n2. Working with metadata and reference frames:")
+    point_camera = Point(1.0, 2.0, 3.0, reference_frame="camera", unit="m")
+    safe_print(f"  Reference frame: {point_camera.reference_frame()}")
+
+    point_camera.set_reference_frame("world")
+    safe_print(f"  After changing reference frame: {point_camera.reference_frame()}")
+
+    origin = Point(0.0, 0.0, 0.0, reference_frame="world")
+    point_camera.set_origin(origin)
+    safe_print(f"  Origin: {point_camera.origin()}")
+
+    # 3. Unit conversions
+    safe_print("\n3. Unit conversions:")
+    pose_m_rad = Pose3D(x=1.0, y=2.0, theta=math.pi/2)
+    pose_cm = pose_m_rad.to("cm")
+    pose_deg = pose_m_rad.to("deg")
+
+    safe_print(f"  Original (m, rad): {pose_m_rad}")
+    safe_print(f"  Converted to cm: {pose_cm}")
+    safe_print(f"  Converted to deg: {pose_deg}")
+    safe_print(f"  Converted to both: {pose_m_rad.to('cm', angular_unit='deg')}")
+
+    # 4. Numeric operations
+    safe_print("\n4. Numeric operations:")
+    p1 = Point(1, 2, 3)
+    p2 = Point(4, 5, 6)
+
+    safe_print(f"  p1: {p1}")
+    safe_print(f"  p2: {p2}")
+    safe_print(f"  p1 + p2: {p1 + p2}")
+    safe_print(f"  p2 - p1: {p2 - p1}")
+    safe_print(f"  p1 * 2: {p1 * 2}")
+    safe_print(f"  p1 / 2: {p1 / 2}")
+    safe_print(f"  -p1: {-p1}")
+    safe_print(f"  p1 magnitude: {p1.magnitude()}")
+
+    # 5. Pose operations
+    safe_print("\n5. Pose operations:")
+    pose1 = Pose6D(1, 2, 3, 0.1, 0.2, 0.3)
+    pose2 = Pose6D(4, 5, 6, 0.4, 0.5, 0.6)
+
+    safe_print(f"  pose1: {pose1}")
+    safe_print(f"  pose2: {pose2}")
+
+    composed = pose1 * pose2
+    safe_print(f"  pose1 * pose2: {composed}")
+
+    inverse = pose1.inverse()
+    safe_print(f"  inverse of pose1: {inverse}")
+
+    # Test that inverse works correctly
+    identity = pose1 * inverse
+    identity_check = all(abs(v) < 1e-6 for v in identity.translation) and all(abs(v) < 1e-6 for v in [identity.roll, identity.pitch, identity.yaw])
+    safe_print(f"  pose1 * inverse ≈ identity: {identity_check}")
+
+    # 6. NumPy integration
+    safe_print("\n6. NumPy integration:")
+    point_np = point.numpy()
+    safe_print(f"  Point as numpy: {point_np}")
+    safe_print(f"  Create from numpy: {Point(*np.array([4, 5, 6]))}")
+
+    # 7. Working with Planes
+    safe_print("\n7. Working with Planes:")
+    test_plane = Plane([1, 1, 1, -10])
+    safe_print(f"  Plane coefficients: {test_plane.coefficients}")
+    safe_print(f"  Plane normal: {test_plane.normal()}")
+
+    # 8. Accessing values
+    safe_print("\n8. Accessing coordinate values:")
+    p = Point(1, 2, 3)
+    safe_print(f"  By attribute - p.x: {p.x}, p.y: {p.y}, p.z: {p.z}")
+    safe_print(f"  By index - p[0]: {p[0]}, p[1]: {p[1]}, p[2]: {p[2]}")
+    safe_print(f"  By slicing - p[0:2]: {p[0:2]}")
+
+    values = []
+    for value in p:
+        values.append(value)
+    safe_print(f"  By iteration: {values}")
+
+    # 9. Shape information
+    safe_print("\n9. Shape information:")
+    safe_print(f"  Point shape: {p.shape}")
+    safe_print(f"  Pose6D shape: {pose.shape}")
+
+    # 10. Bound checking
+    safe_print("\n10. Bound checking:")
+
+    class BoundedCoord(Coordinate):
+        x: float = CoordinateField(bounds=(-10, 10), unit="m")
+        y: float = CoordinateField(bounds=(-10, 10), unit="m")
+        z: float = CoordinateField(bounds=(0, 100), unit="m")
+
+    valid_bounded = BoundedCoord(5, 5, 50)
+    safe_print(f"  Valid bounded coordinate: {valid_bounded}")
+
+    try:
+        BoundedCoord(5, 5, 150)
+        safe_print("  ERROR: Should have thrown ValueError for out-of-bounds")
+    except ValueError as e:
+        safe_print(f"  Correctly caught bound error: {e}")
+
+    safe_print("\n=== Demo Complete ===\n")
+
+if __name__ == "__main__":
+    demo()
 
