@@ -102,3 +102,22 @@ class World(Sample):
                 warnings.warn("Object name is missing. The object will not be added.", UserWarning, stacklevel=2)
                 return
             self.objects.append(obj)
+
+
+    def clear(self, keep: list[str] | None = None) -> None:
+        """Clear all objects except permanent ones from the world.
+
+        Args:
+            keep: List of object names to keep. If None, keeps permanent objects
+                    (camera, plane, aruco)
+        """
+        permanent_objects = ["camera", "plane", "aruco"]
+        keep = keep if keep is not None else permanent_objects
+
+        # Create new collection with filtered objects
+        new_objects = Collection[WorldObject]()
+        for obj in self.objects:
+            if obj.name in keep:
+                _ = new_objects.append(obj)
+
+        self.objects = new_objects
